@@ -42,3 +42,23 @@ One line of reasoning each. Ambiguities resolved in favour of keeping arms compa
   unknown keywords are ignored by JSON Schema validators, so the file stays a valid schema.
 - **Field values are strings throughout the schema.** The parser's job is extraction; typing
   them here would let a cast hide an extraction error.
+
+## Phase 1 — step 3, the LLM client
+
+- **A failed prompt comes back as a failed `Completion`, not an exception.** These are
+  overnight batch jobs; losing six hours of labelling because one line upset the gateway
+  is the worse failure. `BatchResult.failures` makes the loss countable.
+- **A 200 with an unusable body is not retried.** A malformed response is the gateway's
+  bug, not a transient one, and retrying it just burns the batch three times over.
+- **Non-retryable statuses (e.g. 400) fail immediately.** A 400 means our request is
+  wrong; retrying multiplies the bug instead of fixing it.
+- **Backoff jitter is derived from the prompt index, not an RNG.** Retries still spread
+  out, but a seeded run replays identically.
+- **`Retry-After` wins over our own backoff when the server sends it.** The gateway knows
+  its queue depth and we do not.
+- **`BatchResult.usage_missing` is reported separately.** Token counts go straight into
+  `ArmReport`; a silently-zero count would understate an arm's cost and read as a win.
+- **`transport`, `api_key` and `sleeper` are injectable.** That is the seam that lets
+  `make test` cover retries and concurrency with no network, no secrets and no real sleep.
+- **`seed` is sent with the request when given.** Determinism is a project rule and the
+  seed already has to be recorded in the report.
