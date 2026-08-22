@@ -1,0 +1,14 @@
+# Data and run artefacts live on the Spark, never in git (CLAUDE.md rule 13).
+data/raw/
+data/generated/
+runs/
+
+# data/gold/ and data/unseen/ ARE committed: they are the frozen hand-labelled
+# reference and the comparison is meaningless if they drift per-machine.
+
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+uv.lock

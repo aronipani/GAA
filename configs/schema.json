@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://parser-lab.local/schema/log-fields.json",
+  "title": "Parsed log fields",
+  "description": "Field vocabulary for a LogRecord.fields object. Values are always strings: the parser's job is extraction, not typing, and coercing here would hide extraction errors behind a cast.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "timestamp": {"type": "string", "minLength": 1},
+    "level": {
+      "type": "string",
+      "enum": ["TRACE", "DEBUG", "INFO", "NOTICE", "WARN", "WARNING", "ERROR", "FATAL", "CRITICAL"]
+    },
+    "host": {"type": "string", "minLength": 1},
+    "process": {"type": "string", "minLength": 1},
+    "pid": {"type": "string", "pattern": "^[0-9]+$"},
+    "logger": {"type": "string", "minLength": 1},
+    "thread": {"type": "string", "minLength": 1},
+    "message": {"type": "string"},
+    "client_ip": {"type": "string", "minLength": 1},
+    "user": {"type": "string", "minLength": 1},
+    "method": {
+      "type": "string",
+      "enum": ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "TRACE", "CONNECT"]
+    },
+    "path": {"type": "string", "minLength": 1},
+    "protocol": {"type": "string", "pattern": "^HTTP/[0-9](\\.[0-9])?$"},
+    "status": {"type": "string", "pattern": "^[1-5][0-9]{2}$"},
+    "bytes": {"type": "string", "pattern": "^([0-9]+|-)$"},
+    "referer": {"type": "string", "minLength": 1},
+    "user_agent": {"type": "string", "minLength": 1},
+    "duration_ms": {"type": "string", "pattern": "^[0-9]+(\\.[0-9]+)?$"},
+    "exception": {"type": "string", "minLength": 1},
+    "stack": {"type": "string", "minLength": 1}
+  },
+  "x-required-by-shape": {
+    "_comment": "Not a JSON Schema keyword; validators ignore it. src/verify/schema.py applies the entry matching LogRecord.shape, because required-ness is per shape and the shape is not part of the fields object.",
+    "syslog": ["timestamp", "host", "process", "message"],
+    "json_lines": ["timestamp", "level", "message"],
+    "logfmt": ["level", "message"],
+    "apache_clf": ["client_ip", "timestamp", "method", "path", "protocol", "status", "bytes"],
+    "multiline_trace": ["exception", "stack"],
+    "unknown": []
+  }
+}

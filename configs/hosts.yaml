@@ -1,0 +1,11 @@
+# Machine topology. The only place a URL or a hostname is allowed to appear.
+# CLAUDE.md rule 9: no hardcoded endpoints or model names anywhere in src/.
+spark:
+  host: spark.lan
+  user: aroni
+  repo: /srv/parser-lab
+  gateway: http://spark.lan:4000/v1
+laptop:
+  # Smoke tests only, <=4B models. INFRA.md: the laptop never runs a model
+  # bigger than the deployment target.
+  gateway: http://localhost:11434/v1

@@ -1,0 +1,19 @@
+# Arm 0 - zero-shot baseline. Base model, no examples, no verification loop.
+arm: arm0_zeroshot
+seed: 1337
+input_path: data/gold/sample.jsonl
+output_path: data/generated/arm0.jsonl
+report_path: reports/arm0.json
+schema_path: configs/schema.json
+llm:
+  host: spark                 # resolved against configs/hosts.yaml
+  model: Qwen2.5-3B-Instruct  # same base model across arms (CLAUDE.md rule 4)
+  api_key_env: PARSER_LAB_GATEWAY_KEY
+  max_concurrency: 32         # size from reports/serving_bench.md, not by guessing
+  timeout_s: 120.0
+  max_retries: 5
+  backoff_base_s: 1.0
+  temperature: 0.0
+  max_tokens: 512
+params:
+  prompt_path: configs/prompts/arm0_zeroshot.txt

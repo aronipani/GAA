@@ -1,0 +1,44 @@
+# Decisions
+
+One line of reasoning each. Ambiguities resolved in favour of keeping arms comparable.
+
+## Phase 1 — scaffolding, contracts, config
+
+- **Scaffolded at the repo root rather than in a `parser-lab/` subdirectory.** The repo
+  *is* parser-lab; a nested directory would make `python -m src.label.arm0_zeroshot` and
+  the Makefile's `cd $(REPO)` disagree about where the root is.
+- **Package is literally named `src`.** The Makefile invokes `python -m src.label.$*`, so
+  the import path has to be `src.*`; the project is therefore non-installable
+  (`tool.uv.package = false`) and always run from the repo root.
+- **Dropped the unused `field` import from the `contracts.py` snippet.** Giving
+  `per_shape_f1` a `default_factory` would have made a comparison field optional, which is
+  worse than a one-import deviation from the brief.
+- **`make_line_id` lives in `contracts.py`** and is a 16-hex-char SHA-256 of the raw line.
+  The join key is part of the contract; letting each arm hash its own way would break the
+  joins the contract exists to guarantee. 16 chars keeps JSONL readable at ~1e-10 collision
+  risk for corpora up to 1e6 lines.
+- **JSONL read/write helpers also live in `contracts.py`.** Every arm writes the same file
+  format; a second hand-rolled writer is how the format quietly forks.
+- **`record_from_dict` rejects unknown keys and non-string field values.** Numeric
+  `status: 200` from one arm and `"200"` from another would silently score as a mismatch,
+  which reads as a model failure rather than a serialisation bug.
+- **`data/gold/` and `data/unseen/` are committed; `data/raw/`, `data/generated/` and
+  `runs/` are gitignored.** `CLAUDE.md` rule 13 keeps bulk data off the laptop, but the
+  frozen hand-labelled sets must be identical on both machines or no number is comparable.
+- **Config rejects unknown keys as well as missing ones.** "Fail loudly on a missing key"
+  does not cover the more common failure: a typo'd key that loads fine and configures
+  nothing.
+- **`llm:` must be present in every arm config, explicitly `null` for arms with no model.**
+  An absent key would be indistinguishable from a forgotten one.
+- **Config paths are repo-relative in YAML and absolute in memory.** A `make` target and an
+  interactive shell must resolve them the same way regardless of cwd.
+- **The gateway URL is named by host (`host: spark`) and resolved from `hosts.yaml`.**
+  Switching an arm to the laptop for a smoke test is then a one-word change and no URL ever
+  appears in `src/`.
+- **The API key is read from the environment at call time, not at load time.** `make test`
+  must pass with no network and no secrets.
+- **`configs/schema.json` carries a non-standard `x-required-by-shape` table.** Which fields
+  are required depends on the shape, and the shape is not part of the fields object;
+  unknown keywords are ignored by JSON Schema validators, so the file stays a valid schema.
+- **Field values are strings throughout the schema.** The parser's job is extraction; typing
+  them here would let a cast hide an extraction error.
