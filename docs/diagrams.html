@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>parser-lab — architecture diagrams</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#EDF0F3;
+    --surface:#FFFFFF;
+    --ink:#16202B;
+    --muted:#5C6B7A;
+    --rule:#D2DAE1;
+    --teal:#0F5F63;
+    --amber:#B07208;
+    --mono:"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --sans:"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;
+    background:
+      repeating-linear-gradient(to bottom, transparent 0 27px, rgba(22,32,43,.035) 27px 28px),
+      var(--bg);
+    color:var(--ink);
+    font-family:var(--sans);
+    line-height:1.55;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:0 20px 96px}
+
+  header{padding:56px 0 28px;border-bottom:1px solid var(--rule)}
+  .eyebrow{
+    font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--teal);margin:0 0 14px;font-weight:600;
+  }
+  h1{
+    font-family:var(--mono);font-weight:600;font-size:clamp(26px,4.4vw,40px);
+    letter-spacing:-.02em;margin:0 0 12px;
+  }
+  .lede{margin:0;max-width:62ch;color:var(--muted);font-size:15.5px}
+
+  nav{
+    position:sticky;top:0;z-index:20;
+    background:rgba(237,240,243,.93);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--rule);
+    margin-bottom:40px;
+  }
+  nav ol{
+    list-style:none;display:flex;gap:6px;overflow-x:auto;
+    margin:0;padding:10px 0;max-width:1080px;
+  }
+  nav a{
+    font-family:var(--mono);font-size:11.5px;white-space:nowrap;
+    color:var(--muted);text-decoration:none;padding:5px 10px;border-radius:3px;
+    border:1px solid transparent;
+  }
+  nav a:hover,nav a:focus-visible{color:var(--ink);border-color:var(--rule);background:var(--surface)}
+
+  figure{margin:0 0 40px;background:var(--surface);border:1px solid var(--rule);border-radius:4px;overflow:hidden}
+  figcaption{
+    display:flex;gap:14px;align-items:baseline;flex-wrap:wrap;
+    padding:16px 20px;border-bottom:1px solid var(--rule);background:#F7F9FA;
+  }
+  .idx{font-family:var(--mono);font-size:11px;color:var(--teal);font-weight:600;letter-spacing:.08em}
+  .ttl{font-family:var(--mono);font-size:15px;font-weight:600;letter-spacing:-.01em}
+  .sub{flex-basis:100%;color:var(--muted);font-size:13.5px;max-width:70ch;margin-top:-4px}
+  .canvas{padding:26px 16px;overflow-x:auto;text-align:center}
+  .mermaid{min-width:min-content}
+
+  .note{
+    border-left:2px solid var(--amber);padding:2px 0 2px 16px;margin:0 20px 22px;
+    color:var(--muted);font-size:13.5px;max-width:74ch;
+  }
+  .note b{color:var(--ink);font-weight:600}
+
+  footer{margin-top:8px;padding-top:20px;border-top:1px solid var(--rule);color:var(--muted);font-size:13px;font-family:var(--mono)}
+  .err{font-family:var(--mono);font-size:13px;color:#8b1a1a;padding:12px 20px}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">parser-lab · architecture</p>
+  <h1>Five diagrams</h1>
+  <p class="lede">Shared infrastructure versus swappable arms, the two candidate techniques, the ablation that settles the arbiter question, and where logs and documents part ways.</p>
+</header>
+
+<nav>
+  <ol>
+    <li><a href="#d1">01 · pipeline</a></li>
+    <li><a href="#d2">02 · peer loop</a></li>
+    <li><a href="#d3">03 · ablation</a></li>
+    <li><a href="#d4">04 · teacher</a></li>
+    <li><a href="#d5">05 · logs vs docs</a></li>
+  </ol>
+</nav>
+
+<figure id="d1">
+  <figcaption>
+    <span class="idx">01</span><span class="ttl">Overall pipeline</span>
+    <span class="sub">Preprocess, verify and evaluate are built once. Only label generation varies by arm.</span>
+  </figcaption>
+  <div class="canvas">
+<pre class="mermaid">
+flowchart TB
+    subgraph SHARED1["SHARED &mdash; build once"]
+        RAW["Raw corpus&lt;br/&gt;50-200K lines, many shapes"]
+        PRE["Preprocess&lt;br/&gt;Drain3 clustering / shape classifier&lt;br/&gt;multiline joining"]
+        RAW --&gt; PRE
+    end
+
+    PRE --&gt; SPLIT{Split}
+    SPLIT --&gt;|"300 lines, stratified"| GOLD[["GOLD SET&lt;br/&gt;hand-labelled by you&lt;br/&gt;FROZEN - never trained on"]]
+    SPLIT --&gt;|"2-3 whole shapes"| UNSEEN[["UNSEEN SHAPES&lt;br/&gt;generalisation test"]]
+    SPLIT --&gt;|remainder| POOL["Unlabelled pool"]
+
+    POOL --&gt; ARMS
+
+    subgraph ARMS["SWAPPABLE &mdash; one module per arm, identical I/O contract"]
+        direction LR
+        A1["Arm 1&lt;br/&gt;Drain3 + regex"]
+        A2["Arm 2&lt;br/&gt;Peer G-A-A loop"]
+        A3["Arm 3&lt;br/&gt;Teacher distill"]
+        A4["Arm 4&lt;br/&gt;Rejection sampling"]
+    end
+
+    ARMS --&gt; VERIFY
+
+    subgraph SHARED2["SHARED &mdash; build once"]
+        VERIFY["Programmatic verification&lt;br/&gt;schema / types / cross-field / exact match"]
+        DATA[("Verified dataset&lt;br/&gt;JSONL")]
+        TRAIN["QLoRA SFT&lt;br/&gt;Qwen2.5-3B"]
+        VERIFY --&gt; DATA --&gt; TRAIN
+    end
+
+    TRAIN --&gt; EVAL
+    GOLD --&gt; EVAL
+    UNSEEN --&gt; EVAL
+
+    subgraph SHARED3["SHARED &mdash; frozen before arms run"]
+        EVAL["Eval harness&lt;br/&gt;field P/R/F1 / exact match&lt;br/&gt;tokens / latency / VRAM"]
+        REPORT["reports/arm_XX.json"]
+        EVAL --&gt; REPORT
+    end
+
+    style GOLD fill:#8b1a1a,color:#fff,stroke:#5e1111
+    style UNSEEN fill:#8b1a1a,color:#fff,stroke:#5e1111
+    style VERIFY fill:#1a4d2e,color:#fff,stroke:#123520
+    style ARMS fill:#E8EDF1,stroke:#96A6B4
+</pre>
+  </div>
+  <p class="note"><b>Why the boundary sits here.</b> Draw it anywhere else and each arm becomes a rebuild, the arms stop being comparable, and the comparison quietly dies.</p>
+</figure>
+
+<figure id="d2">
+  <figcaption>
+    <span class="idx">02</span><span class="ttl">Technique A &mdash; peer debate loop</span>
+    <span class="sub">Three same-size models. The referee is code. The output is a parser, which then labels the pool for free.</span>
+  </figcaption>
+  <div class="canvas">
+<pre class="mermaid">
+flowchart TB
+    START(["Corpus sample&lt;br/&gt;+ currently failing lines"]) --&gt; PROP
+
+    PROP["PROPOSER &mdash; Qwen2.5-Coder-14B&lt;br/&gt;writes named-capture regexes / grammar"]
+    PROP --&gt; COMPILE{"re.compile()&lt;br/&gt;valid?"}
+    COMPILE --&gt;|"no - microseconds"| PROP
+
+    COMPILE --&gt;|yes| REF["REFEREE &mdash; CODE, NOT A MODEL&lt;br/&gt;run parser over regression corpus&lt;br/&gt;per-shape coverage / field-type checks"]
+
+    REF --&gt; BETTER{"beats current best&lt;br/&gt;AND passes 100% of&lt;br/&gt;regression corpus?"}
+    BETTER --&gt;|no| PROP
+    BETTER --&gt;|yes| ACCEPT[["Accept - freeze into parser&lt;br/&gt;append to accepted-patterns library"]]
+
+    ACCEPT --&gt; ADV["Generate attack lines"]
+
+    subgraph ADVS["ADVERSARIES &mdash; cheap, parallel, fuzzers not critics"]
+        ADV1["Adversary A &mdash; Llama-3.2-3B&lt;br/&gt;syntax edge cases:&lt;br/&gt;escaped quotes / unicode / truncation"]
+        ADV2["Adversary B &mdash; Gemma-3-4B&lt;br/&gt;semantic misparse:&lt;br/&gt;right regex, wrong field name"]
+    end
+
+    ADV --&gt; ADVS
+    ADVS --&gt; RUN{"parser fails&lt;br/&gt;any line?"}
+
+    RUN --&gt;|yes| RECORD["Record line + expected parse&lt;br/&gt;regression corpus grows permanently"]
+    RECORD --&gt; PROP
+
+    RUN --&gt;|"no, N rounds running"| DONE(["Converged - freeze parser&lt;br/&gt;models never run again"])
+
+    DONE --&gt; LABEL["Parser labels the whole pool&lt;br/&gt;millions of pairs, zero inference"]
+    LABEL --&gt; SFT(["shared verification, then SFT"])
+
+    style REF fill:#1a4d2e,color:#fff,stroke:#123520
+    style RECORD fill:#7d5a00,color:#fff,stroke:#553d00
+    style DONE fill:#2c3e50,color:#fff,stroke:#1d2a36
+    style ADVS fill:#E8EDF1,stroke:#96A6B4
+</pre>
+  </div>
+  <p class="note"><b>The ratchet is the mechanism.</b> Every counterexample enters the regression corpus permanently with its expected parse, and a candidate is accepted only at 100%. The parser can only move forward &mdash; enforcement that doesn't depend on the model cooperating.</p>
+</figure>
+
+<figure id="d3">
+  <figcaption>
+    <span class="idx">03</span><span class="ttl">The ablation</span>
+    <span class="sub">Same corpus, same budget, three configurations. This is the experiment the project exists to run.</span>
+  </figcaption>
+  <div class="canvas">
+<pre class="mermaid">
+flowchart LR
+    C["Same corpus&lt;br/&gt;same budget"] --&gt; A["2a&lt;br/&gt;Generator&lt;br/&gt;+ Adversary&lt;br/&gt;+ Arbiter"]
+    C --&gt; B["2b&lt;br/&gt;Generator&lt;br/&gt;+ Adversary"]
+    C --&gt; D["2c&lt;br/&gt;Generator&lt;br/&gt;+ code referee only"]
+    A --&gt; R["Compare coverage,&lt;br/&gt;rounds-to-converge,&lt;br/&gt;tokens spent"]
+    B --&gt; R
+    D --&gt; R
+    style D fill:#1a4d2e,color:#fff,stroke:#123520
+</pre>
+  </div>
+  <p class="note">If <b>2c matches 2a</b>, the peer arbiter contributed nothing measurable &mdash; on your data, with your models. That is a real finding, not a disappointment.</p>
+</figure>
+
+<figure id="d4">
+  <figcaption>
+    <span class="idx">04</span><span class="ttl">Technique B &mdash; teacher distillation</span>
+    <span class="sub">A stronger model labels, programmatic checks filter, the small model trains on survivors.</span>
+  </figcaption>
+  <div class="canvas">
+<pre class="mermaid">
+flowchart TB
+    IN(["Unlabelled pool"]) --&gt; PREP["Preprocess&lt;br/&gt;logs: shape-classified&lt;br/&gt;docs: Docling/Marker to clean text"]
+
+    PREP --&gt; TEACH["TEACHER &mdash; Gemini 2.5 Flash&lt;br/&gt;extract to schema&lt;br/&gt;k samples at temperature"]
+
+    TEACH --&gt; SC{"self-consistency:&lt;br/&gt;do k samples agree?"}
+    SC --&gt;|no| HARD[["Flag as HARD&lt;br/&gt;hand-label a slice&lt;br/&gt;DO NOT silently discard"]]
+    SC --&gt;|yes| VER
+
+    VER["VERIFICATION&lt;br/&gt;schema / types / enums&lt;br/&gt;cross-field consistency&lt;br/&gt;regex validators"]
+
+    VER --&gt; PASS{passes?}
+    PASS --&gt;|no| HARD
+    PASS --&gt;|yes| KEEP[("Verified dataset")]
+
+    KEEP --&gt; SFTT["QLoRA SFT - Qwen2.5-3B"]
+    SFTT --&gt; EV(["shared eval"])
+
+    HARD -.-&gt;|"track pass-rate BY SHAPE&lt;br/&gt;this is your blind spot"| AUDIT[/"reports/coverage_gaps.md"/]
+
+    style VER fill:#1a4d2e,color:#fff,stroke:#123520
+    style HARD fill:#8b1a1a,color:#fff,stroke:#5e1111
+</pre>
+  </div>
+  <p class="note"><b>Selection bias is the trap.</b> "Keep only what passes verification" trains you exclusively on what the teacher found easy. Hard layouts get dropped systematically, leaving a hole shaped precisely like your hardest cases. Break the pass rate out by shape.</p>
+</figure>
+
+<figure id="d5">
+  <figcaption>
+    <span class="idx">05</span><span class="ttl">Logs versus documents</span>
+    <span class="sub">One has an exact verifier. The other doesn't, and every conclusion downstream is softer for it.</span>
+  </figcaption>
+  <div class="canvas">
+<pre class="mermaid">
+flowchart LR
+    subgraph L["LOGS &mdash; exact verifier"]
+        direction TB
+        L1["Raw line"] --&gt; L2["Regex / grammar"] --&gt; L3["Fields"]
+        L3 --&gt; L4{{"matches gold exactly?&lt;br/&gt;binary, no ambiguity"}}
+    end
+
+    subgraph D["DOCUMENTS &mdash; fuzzy verifier"]
+        direction TB
+        D1["PDF bytes"] --&gt; D2["Docling / Marker / olmOCR&lt;br/&gt;layout - the actual hard part"]
+        D2 --&gt; D3["Clean text + hints"] --&gt; D4["Model extraction"] --&gt; D5["Fields"]
+        D5 --&gt; D6{{"schema-valid, correctly typed,&lt;br/&gt;arithmetically consistent -&lt;br/&gt;and still the wrong vendor name"}}
+    end
+
+    style L4 fill:#1a4d2e,color:#fff,stroke:#123520
+    style D6 fill:#8b1a1a,color:#fff,stroke:#5e1111
+    style L fill:#E8EDF1,stroke:#96A6B4
+    style D fill:#E8EDF1,stroke:#96A6B4
+</pre>
+  </div>
+  <p class="note">The small model <b>never sees raw PDF bytes</b> &mdash; only cleaned text plus layout hints. Reading order, multi-column and tables spanning pages are the layout tools' job. A text-only 3B fine-tune cannot learn them and shouldn't try.</p>
+</figure>
+
+<footer>
+  parser-lab · diagrams mirror ARCHITECTURE.md · edit the .md, re-render here
+</footer>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
+<script>
+  (function () {
+    if (typeof mermaid === "undefined") {
+      document.querySelectorAll(".canvas").forEach(function (c) {
+        var p = document.createElement("p");
+        p.className = "err";
+        p.textContent = "Diagram renderer did not load. Reopen with a network connection, or paste the source into mermaid.live.";
+        c.parentNode.insertBefore(p, c);
+      });
+      return;
+    }
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: "base",
+      securityLevel: "loose",
+      flowchart: { curve: "basis", padding: 14, useMaxWidth: true },
+      themeVariables: {
+        fontFamily: '"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace',
+        fontSize: "13px",
+        background: "#FFFFFF",
+        primaryColor: "#F2F5F7",
+        primaryTextColor: "#16202B",
+        primaryBorderColor: "#96A6B4",
+        lineColor: "#5C6B7A",
+        secondaryColor: "#E8EDF1",
+        tertiaryColor: "#FBFCFD",
+        clusterBkg: "#F4F7F9",
+        clusterBorder: "#B9C5CF",
+        edgeLabelBackground: "#FFFFFF"
+      }
+    });
+  })();
+</script>
+</body>
+</html>

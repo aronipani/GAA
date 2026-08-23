@@ -4,7 +4,7 @@ One diagram of what actually happens to a log line, from raw text to a number in
 report. Red is frozen and hand-made. Green is deterministic code that judges. Everything
 else is ordinary plumbing.
 
-`ARCHITECTURE.md` draws the same system at the level of *techniques*. This draws it at the
+`docs/ARCHITECTURE.md` draws the same system at the level of *techniques*. This draws it at the
 level of *files*, which is the level you debug at.
 
 ---
@@ -142,19 +142,19 @@ is the whole reason the boundary sits where it does.
 ## Reading the docs against the package
 
 Five documents describe this project and they do not fully agree. Where they conflict, I
-followed `PROMPT_phase1.md` (it is the build contract) and noted it. The ones that matter:
+followed `docs/BRIEF_phase1.md` (it is the build contract) and noted it. The ones that matter:
 
-**1. `ArmReport` has different fields in `README.md` and `PROMPT_phase1.md`.**
+**1. `ArmReport` has different fields in `docs/PROJECT.md` and `docs/BRIEF_phase1.md`.**
 The README's JSON carries `train_wall_clock_s`, `inference_p50_ms`, `inference_p95_ms` and
 `peak_vram_mb`, and has no `seed` or `notes`. The Phase 1 contract is the reverse. I built
-the Phase 1 contract. Those four are not decoration — the README's own argument is that
-cost, not accuracy, justifies a small specialist, and `INFRA.md` makes laptop latency the
+the Phase 1 contract. Those four are not decoration — PROJECT.md's own argument is that
+cost, not accuracy, justifies a small specialist, and `docs/INFRA.md` makes laptop latency the
 deployment-realism check. **Add them in Phase 2 as optional fields with defaults.** Adding
 defaulted fields keeps every earlier arm's JSON readable; renaming or removing one does
 not.
 
 **2. "Never evaluate on gold" is contradicted by the harness's own job.**
-`PROMPT_phase1.md` rule 2 says never train *or evaluate* on gold; the same document then
+`docs/BRIEF_phase1.md` rule 2 says never train *or evaluate* on gold; the same document then
 specifies a harness that "loads gold, runs an arm, scores it". `CLAUDE.md` rule 2 gives the
 coherent version: never **train** on gold or unseen. Gold exists to be scored against. The
 assertion the harness will actually make is that **no arm's training data intersects gold
@@ -165,30 +165,30 @@ Arm 0 is a prompt and arm 1 is a regex set; neither produces a training set and 
 fine-tuned. The diagram conflates two different jobs that both get called "an arm": a
 **labeller** that manufactures training data for the pool, and a **parser under test** that
 gets scored. Arms 0 and 1 are only the second. That is why the Phase 1 pipeline above is
-shorter than the picture in `ARCHITECTURE.md`, and it is not a simplification — it is what
+shorter than the picture in `docs/ARCHITECTURE.md`, and it is not a simplification — it is what
 the code does.
 
 **4. Preprocessing order is drawn wrong.**
-`ARCHITECTURE.md` lists the preprocess box as "Drain3 clustering · shape classifier ·
-multiline joining". `PROMPT_phase1.md` is explicit that multiline joining must run *first*,
+`docs/ARCHITECTURE.md` lists the preprocess box as "Drain3 clustering · shape classifier ·
+multiline joining". `docs/BRIEF_phase1.md` is explicit that multiline joining must run *first*,
 before anything else. Clustering a half-stack-trace produces a template for a thing that
 is not a log line. The diagram above puts it first.
 
 **5. Three different hardware plans.**
-`README.md` assumes 12–16GB, QLoRA, a 14B proposer. `INFRA.md` replaces that with a 128GB
-Spark, bf16 LoRA and a 30B-A3B MoE. `SERVING.md` explicitly supersedes `INFRA.md` on
+`docs/PROJECT.md` assumes 12–16GB, QLoRA, a 14B proposer. `docs/INFRA.md` replaces that with a 128GB
+Spark, bf16 LoRA and a 30B-A3B MoE. `docs/SERVING.md` explicitly supersedes `docs/INFRA.md` on
 serving (vLLM, not Ollama) and revises the model roster again. Precedence is
-**SERVING > INFRA > README** for anything about hardware or serving; the README still
+**SERVING > INFRA > README** for anything about hardware or serving; PROJECT.md still
 governs the *experiment* design — the arm table, the milestones and the one rule.
 
 **6. The base model is not settled.**
-`README.md` and `CLAUDE.md` both fix `Qwen2.5-3B-Instruct` across all arms and warn that
-changing it silently destroys the comparison. `SERVING.md` suggests Qwen3.5-4B or 2B and
+`docs/PROJECT.md` and `CLAUDE.md` both fix `Qwen2.5-3B-Instruct` across all arms and warn that
+changing it silently destroys the comparison. `docs/SERVING.md` suggests Qwen3.5-4B or 2B and
 says to benchmark first. Both are defensible; only one can be true after arm 0 runs.
 `configs/arm0.yaml` currently says `Qwen2.5-3B-Instruct`. **Decide before the first arm
 produces a number, not after.**
 
-**7. Small path disagreements**, resolved toward `PROMPT_phase1.md`: gold lives at
+**7. Small path disagreements**, resolved toward `docs/BRIEF_phase1.md`: gold lives at
 `data/gold/logs_gold.jsonl` (README's name, now used in the configs); `data/generated/` is
-flat rather than per-arm; `data/unseen/` exists, despite being absent from the README's
+flat rather than per-arm; `data/unseen/` exists, despite being absent from PROJECT.md's
 layout, because `unseen_shape_f1` depends on it.
