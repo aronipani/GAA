@@ -1,7 +1,7 @@
 # Arm 0 - zero-shot baseline. Base model, no examples, no verification loop.
 arm: arm0_zeroshot
 seed: 1337
-input_path: data/gold/sample.jsonl
+input_path: data/gold/logs_gold.jsonl
 output_path: data/generated/arm0.jsonl
 report_path: reports/arm0.json
 schema_path: configs/schema.json

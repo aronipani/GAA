@@ -2,7 +2,7 @@
 # regexes. No LLM at all, hence the explicit null: an omitted key is an error.
 arm: arm1_classical
 seed: 1337
-input_path: data/gold/sample.jsonl
+input_path: data/gold/logs_gold.jsonl
 output_path: data/generated/arm1.jsonl
 report_path: reports/arm1.json
 schema_path: configs/schema.json
