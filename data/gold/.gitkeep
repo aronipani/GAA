@@ -1,0 +1,3 @@
+Hand-labelled gold set lives here: logs_gold.jsonl + LABELLING_NOTES.md.
+Committed deliberately (CLAUDE.md rule 13) so both machines hold identical copies.
+No code writes to this directory. See README.md "Before you can run an arm".

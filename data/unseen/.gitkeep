@@ -1,0 +1,2 @@
+Held-out whole shapes: unseen.jsonl. Hand-labelled, frozen, committed.
+No arm may see these during labelling or training - they measure generalisation.
