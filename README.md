@@ -13,9 +13,14 @@ and "keep the comparison valid" conflict, **comparison wins**.
 
 ```bash
 uv sync
-uv run pytest            # 68 tests, ~0.3s, no network, no GPU
+uv run pytest -m "not lesson"   # 68 tests. Green, always. This is the regression check.
+uv run pytest                    # adds the current step's spec. Red until you finish it.
 uv run ruff check .
 ```
+
+Tests marked `lesson` are the assignment for a step that is not built yet — they are the
+specification in executable form. Today that is step 4: 49 red tests over `src/verify/`.
+Start at **`docs/lessons/step4.md`**.
 
 Then read, in order:
 
@@ -47,7 +52,7 @@ Phase 1. Each step is done when its gate passes. Don't start a step before the o
 | 1 | Repo skeleton, `pyproject.toml` | `uv sync`, ruff and pytest clean | done |
 | 2 | `src/config.py` | missing / unknown / null / wrong-type keys all raise | done |
 | 3 | `src/llm.py` | batched, retries, concurrency — all tested offline | done |
-| 4 | `src/verify/schema.py`, `src/verify/exact.py` | valid, schema-invalid, **and schema-valid-but-wrong** all covered | next |
+| 4 | `src/verify/schema.py`, `src/verify/exact.py` — see `docs/lessons/step4.md` | `pytest -m lesson` green (49 tests) | **you are here** |
 | 5 | `src/eval/harness.py` | 5-record toy gold scored against hand-computed literals | |
 | 6 | `src/preprocess/{multiline,cluster,shape}.py` | 6-line Java stack trace joins into 1 record | |
 | 7 | `src/label/arm1_classical.py`, `src/label/arm0_zeroshot.py` | both emit `reports/armN.json`; arm1 needs no network | |

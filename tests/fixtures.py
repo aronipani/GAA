@@ -45,3 +45,43 @@ JAVA_STACK_TRACE_LINES: Final[tuple[str, ...]] = (
 # validation cannot catch this, which is exactly why exact-match scoring exists.
 SEMANTIC_SWAP_GOLD_FIELDS: Final[dict[str, str]] = {"level": "INFO", "method": "GET"}
 SEMANTIC_SWAP_PREDICTED_FIELDS: Final[dict[str, str]] = {"level": "GET", "method": "INFO"}
+
+
+# --- Valid field sets, one per shape, satisfying configs/schema.json ------------------
+
+VALID_FIELDS: Final[dict[str, dict[str, str]]] = {
+    "syslog": {
+        "timestamp": "Aug 22 14:03:11",
+        "host": "web-01",
+        "process": "sshd",
+        "pid": "4412",
+        "message": "Accepted publickey for aroni",
+    },
+    "json_lines": {
+        "timestamp": "2026-08-22T14:03:11Z",
+        "level": "ERROR",
+        "message": "upstream unavailable",
+    },
+    "logfmt": {"level": "INFO", "message": "cache miss", "duration_ms": "13.5"},
+    "apache_clf": {
+        "client_ip": "10.0.0.7",
+        "timestamp": "22/Aug/2026:14:03:11 +0000",
+        "method": "GET",
+        "path": "/api/v1/items",
+        "protocol": "HTTP/1.1",
+        "status": "200",
+        "bytes": "4213",
+    },
+    "multiline_trace": {
+        "exception": "java.lang.IllegalStateException",
+        "stack": "at com.prologis.ItemService.lookup(ItemService.java:88)",
+    },
+}
+
+# Swapped host and process. Both are free-form non-empty strings, so the schema cannot
+# tell them apart - this is the true schema-valid-but-wrong case for THIS schema.
+SYSLOG_SWAPPED_FIELDS: Final[dict[str, str]] = {
+    **VALID_FIELDS["syslog"],
+    "host": "sshd",
+    "process": "web-01",
+}

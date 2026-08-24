@@ -62,3 +62,26 @@ One line of reasoning each. Ambiguities resolved in favour of keeping arms compa
   `make test` cover retries and concurrency with no network, no secrets and no real sleep.
 - **`seed` is sent with the request when given.** Determinism is a project rule and the
   seed already has to be recorded in the report.
+
+## Lesson layering — step 4
+
+- **Unbuilt steps ship as red tests behind a `lesson` marker.** The specification in
+  executable form beats prose: the student reads a failing assertion, not a paragraph
+  describing what should fail. `pytest -m "not lesson"` stays green as the regression
+  check, so "is the built code still fine" and "is this step done" are different commands.
+- **Stubs raise `NotImplementedError` inside functions, never at import.** A module that
+  raises on import breaks collection, and the student sees a stack trace instead of a
+  test list.
+- **Dataclass shapes (`FieldSchema`, `FieldDiff`) are given; the logic is not.** The data
+  shape is the contract between steps 4 and 5 — letting it be invented would let step 5's
+  spec drift from what step 4 produced.
+- **The brief's schema-valid-but-wrong example does not work against this schema.**
+  `level="GET"`, `method="INFO"` is caught, because both are enums and `GET` is not a
+  level. The genuinely uncatchable swap needs two fields of the same loose type, so the
+  fixture swaps syslog's `host` and `process`. Both cases are now tested: the enum catch
+  is a feature, not a problem, and the contrast shows that how much a swap costs depends
+  on how constrained the fields are.
+- **An empty string in a required field counts as missing** in `schema.py`, but as a
+  *present* field in `exact.py`. Different questions: structurally the parser has not found
+  the field; for scoring, it emitted a value and got it wrong. Recorded because the two
+  modules deliberately disagree.
